@@ -26,7 +26,7 @@ import org.apache.zookeeper.Watcher;
  */
 public class ZooCacheFactory {
   // TODO: make this better - LRU, soft references, ...
-  private static Map<String,ZooCache> instances = new HashMap<>();
+  private static final Map<String,ZooCache> instances = new HashMap<>();
 
   /**
    * Gets a {@link ZooCache}. The same object may be returned for multiple calls with the same arguments.
@@ -40,12 +40,7 @@ public class ZooCacheFactory {
   public ZooCache getZooCache(String zooKeepers, int sessionTimeout) {
     String key = zooKeepers + ":" + sessionTimeout;
     synchronized (instances) {
-      ZooCache zc = instances.get(key);
-      if (zc == null) {
-        zc = new ZooCache(zooKeepers, sessionTimeout);
-        instances.put(key, zc);
-      }
-      return zc;
+      return instances.computeIfAbsent(key, k -> new ZooCache(zooKeepers, sessionTimeout));
     }
   }
 

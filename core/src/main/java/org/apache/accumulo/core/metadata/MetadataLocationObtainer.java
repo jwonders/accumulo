@@ -60,8 +60,15 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.Collections.singletonList;
+
 public class MetadataLocationObtainer implements TabletLocationObtainer {
   private static final Logger log = LoggerFactory.getLogger(MetadataLocationObtainer.class);
+
+  // Use the whole row iterator so that a partial mutations is not read. The code that extracts locations for tablets does a sanity check to ensure there is
+  // only one location. Reading a partial mutation could make it appear there are multiple locations when there are not.
+  private List<IterInfo> serverSideIteratorList = singletonList(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
+  private Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
 
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
@@ -93,11 +100,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       TreeMap<Key,Value> encodedResults = new TreeMap<>();
       TreeMap<Key,Value> results = new TreeMap<>();
 
-      // Use the whole row iterator so that a partial mutations is not read. The code that extracts locations for tablets does a sanity check to ensure there is
-      // only one location. Reading a partial mutation could make it appear there are multiple locations when there are not.
-      List<IterInfo> serverSideIteratorList = new ArrayList<>();
-      serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
-      Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       boolean more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location, encodedResults, locCols, serverSideIteratorList,
           serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L, null);
 
